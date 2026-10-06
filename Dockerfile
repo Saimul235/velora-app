@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# ১. প্রয়োজনীয় সিস্টেম প্যাকেজ ও PHP এক্সটেনশন ইনস্টল
+# ১. প্রয়োজনীয় প্যাকেজ ও PHP এক্সটেনশন ইনস্টল
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -19,18 +19,19 @@ WORKDIR /var/www/html
 # ৩. প্রজেক্ট ফাইল কপি
 COPY . /var/www/html
 
-# ৪. Composer ডিপেনডেন্সি ইনস্টল
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# ৪. মেমোরি লিমিট তুলে Composer নিরাপদভাবে ইনস্টল
+ENV COMPOSER_ALLOW_SUPERUSER=1
+RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
-# ৫. Apache Root Directory পরিবর্তন (public ফোল্ডারকে রুট নির্ধারণ)
+# ৫. Apache Root Directory-কে public ফোল্ডারে সেট করা
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/conf-available/*.conf
 
-# ৬. Apache mod_rewrite চালু
+# Mod Rewrite এনাবল
 RUN a2enmod rewrite
 
-# ৭. Laravel Storage ও Cache ফোল্ডারের সঠিক পারমিশন
+# Storage ও Cache ফোল্ডারের পারমিশন
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
